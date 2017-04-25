@@ -7,9 +7,8 @@
   "description": "A tool that lets you communicate in LaTeX to your friends over Facebook chat.",
   "main": "app.js",
   "dependencies": {
-    "mathmode": "^0.0.4",
-    "async": "^1.5.1",
-    "facebook-chat-api": "^1.0.4"
+    "facebook-chat-api": "^1.3.0",
+    "mathjax-node-svg2png": "^1.0.2"
   },
   "devDependencies": {},
   "scripts": {

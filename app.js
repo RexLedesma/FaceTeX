@@ -3,15 +3,11 @@ require('dotenv').config()
 var http = require('http');
 var fs = require('fs');
 var login = require('facebook-chat-api');
-var mathmode = require('mathmode');
-var mjAPI = require("./node_modules/mathjax-node/lib/mj-single");
-var async = require('async');
-var results = [];
-var options = {
-  packages: ["amsmath", "amssymb"]
-};
-var port = process.env.PORT || 5000;
+var mjAPI = require("mathjax-node-svg2png");
 
+var port = process.env.PORT || 5000;
+mjAPI.config({MathJax: {SVG: {font: "TeX"}}});
+mjAPI.start();
 
 http.createServer(function(req, res) {
   console.log("ping");
@@ -21,114 +17,63 @@ http.createServer(function(req, res) {
   res.end("");
 }).listen(process.env.PORT || 5000);
 
-//only use this if you are on free tier on heroku to keep bot from idling
+// only use this if you are on free tier on heroku to keep bot from idling
 setInterval(function() {
   http.get((HEROKU_INSTANCE), function(res) {
     console.log("pong");
   });
 }, 300000);
-//end
 
-function isValidLatex(inputString) {
-  return (inputString.length !== 1 &&
-    inputString.slice(0, 1) === '$' &&
-    inputString.slice(-1) === '$');
-}
+function parseLatexCommand(inputString) {
+    var parse = new RegExp(/\$(.*)\$/);
+    parse.test(inputString);
 
-function extractLatex(inputString) {
-  var length = inputString.length;
-  return inputString.slice(1, length - 1);
-}
-
-function populateResults(inputString) {
-    var resultArray = inputString.split("");
-    var curr;
-
-    var inMiddle = false;
-
-    for (var i = 0; i < resultArray.length; i++) {
-        if (resultArray[i] === '$') {
-
-            if (!inMiddle) {
-                curr = "";
-            } else {
-                results.push(curr);
-            }
-
-            inMiddle = !inMiddle; //flip switch
-
-        } else {
-            if (inMiddle) {
-                curr += resultArray[i];
-            }
-        }
-
-    }
-
+    return RegExp.$1;
 }
 
 login({
-  email: FB_USERNAME,
-  password: FB_PASSWORD
+  email: process.env.FB_USERNAME,
+  password: process.env.FB_PASSWORD
 }, function callback(err, api) {
   if (err) return console.error(err);
-  api.setOptions({
-    listenEvents: true
-  });
+  api.setOptions({listenEvents: true});
   var interpret = api.listen(function(err, event) {
     if (err) return console.error(err);
 
     if (event.type === "message") {
-        populateResults(event.body);
+        let LaTeX = parseLatexCommand(event.body);
 
-        console.log(results);
-
-        mjAPI.start();
-        mjAPI.config({
-          MathJax: {
-            SVG: {
-              font: "TeX"
-            }
-          },
-          extensions: ""
-        });
-
-        for (var i = 0; i < results.length; i++) {
+        console.log('Processing: ' + LaTeX);
 
           mjAPI.typeset({
-            math: results[i],
+            math: LaTeX,
             format: "inline-TeX", // "inline-TeX", "MathML"
-            png: true, //  svg:true,
-            dpi: 800,
+            png: true,
+            svg: true,
+            dpi: 144,
             ex: 50,
             width: 100
           }, function(data) {
-            //console.log(data);
             if (!data.errors) {
-
-              var base64Data = data.png.replace(/^data:image\/png;base64,/, "");
-              var filename = 'file' + i + '.png';
+              var base64Data = data.png.replace(/^data:image\/png;base64,/, '');
+              var filename = Date.now() + '.png';
 
               fs.writeFile(filename, base64Data, 'base64', function(err) {
-                if (err) {
-                  throw err;
-                } else {
-                  var msg = {
+                if (err) throw err;
+
+                var msg = {
                     attachment: fs.createReadStream(filename)
-                  };
-                  console.log('writing image');
-                  api.sendMessage(msg, event.threadID);
-                }
-                fs.unlink(filename, function(err) {
-                  console.log("deleting temp file: " + filename);
+                };
+                console.log('writing image');
+                api.sendMessage(msg, event.threadID, (err, messageInfo) => {
+                    fs.unlink(filename, (err) => {
+                        console.log('Unlinked file: ' + filename);
+                    })
                 });
+
               });
             }
           });
-
-        } // end of for loop
-
-        results = [];
 
         api.markAsRead(event.threadID, function(err) {
           if (err) console.log(err);
