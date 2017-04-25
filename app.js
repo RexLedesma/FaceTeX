@@ -1,5 +1,6 @@
+require('dotenv').config()
+
 var http = require('http');
-var config = require('./config.json');
 var fs = require('fs');
 var login = require('facebook-chat-api');
 var mathmode = require('mathmode');
@@ -22,11 +23,11 @@ http.createServer(function(req, res) {
 
 //only use this if you are on free tier on heroku to keep bot from idling
 setInterval(function() {
-  http.get((process.env.HEROKU_INSTANCE || config.heroku_instance), function(res) {
+  http.get((HEROKU_INSTANCE), function(res) {
     console.log("pong");
   });
 }, 300000);
-//end 
+//end
 
 function isValidLatex(inputString) {
   return (inputString.length !== 1 &&
@@ -47,7 +48,7 @@ function populateResults(inputString) {
 
     for (var i = 0; i < resultArray.length; i++) {
         if (resultArray[i] === '$') {
-            
+
             if (!inMiddle) {
                 curr = "";
             } else {
@@ -67,8 +68,8 @@ function populateResults(inputString) {
 }
 
 login({
-  email: process.env.FB_USERNAME || config.username,
-  password: process.env.FB_PASSWORD || config.password
+  email: FB_USERNAME,
+  password: FB_PASSWORD
 }, function callback(err, api) {
   if (err) return console.error(err);
   api.setOptions({
