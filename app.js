@@ -7,7 +7,6 @@ var mjAPI = require("mathjax-node-svg2png");
 
 var port = process.env.PORT || 5000;
 mjAPI.config({MathJax: {SVG: {font: "TeX"}}});
-mjAPI.start();
 
 http.createServer(function(req, res) {
   console.log("ping");
@@ -47,7 +46,7 @@ login({
 
           mjAPI.typeset({
             math: LaTeX,
-            format: "inline-TeX", // "inline-TeX", "MathML"
+            format: "TeX", // "inline-TeX", "MathML"
             png: true,
             svg: true,
             dpi: 144,
