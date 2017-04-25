@@ -41,7 +41,7 @@ login({
     if (err) return console.error(err);
 
     if (event.type === "message") {
-        let LaTeX = parseLatexCommand(event.body);
+        var LaTeX = parseLatexCommand(event.body);
 
         console.log('Processing: ' + LaTeX);
 
